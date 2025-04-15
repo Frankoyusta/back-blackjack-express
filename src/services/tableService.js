@@ -21,39 +21,58 @@ function getTable(tableId) {
   return tables.get(tableId);
 }
 
-function createTable(name, createdBy) {
-  if (tables.size >= MAX_TABLES) {
-    throw new Error('Máximo número de mesas alcanzado');
-  }
+function createTable(tableId, maxPlayers = 5) {
+  // Create a fresh deck
+  const deck = deckService.createDeck();
+  const shuffledDeck = deckService.shuffleDeck(deck);
   
-  const table = new Table(name, createdBy);
-  tables.set(table.id, table);
+  // Initialize the table
+  const table = {
+    id: tableId,
+    status: 'waiting', // waiting, betting, playing, finished
+    players: [],
+    dealer: {
+      hand: [],
+      handValue: 0
+    },
+    deck: shuffledDeck, // Ensure deck is properly initialized
+    maxPlayers: maxPlayers
+  };
+  
+  tables.set(tableId, table);
   return table;
 }
 
 function addPlayerToTable(tableId, player) {
   const table = tables.get(tableId);
   if (!table) {
-    throw new Error('Mesa no encontrada');
+    throw new Error('Table is undefined');
   }
+  table.status = 'waiting';
+  table.createdBy = player.id;
+  table.maxPlayers =  MAX_PLAYERS_PER_TABLE;
   
-  if (table.players.length >= MAX_PLAYERS_PER_TABLE) {
-    throw new Error('Mesa llena');
+  if (!table.deck || !Array.isArray(table.deck)) {
+    // Ensure deck exists
+    table.deck = deckService.createDeck();
+    table.deck = deckService.shuffleDseck(table.deck);
   }
-  
-  const playerData = {
-    id: player.id,
-    username: player.username,
-    coins: player.coins,
-    hand: [],
-    bet: 0,
-    status: '',
-    isActive: true
-  };
-  
-  table.addPlayer(playerData);
-  tables.set(tableId, table);
-  return table;
+  //Cambiar por la lógica de la mesa
+  if (table.players.length < 4) {
+    table.players.push({
+      id: player.id,
+      name: player.name,
+      balance: player.balance || 1000,
+      bet: 0,
+      hand: [],
+      handValue: 0,
+      status: 'waiting' // waiting, betting, playing, stood, busted, blackjack
+    });
+    tables.set(tableId, table);
+    return table;
+  }
+  console.log('La media vola locotron ');
+  throw new Error('Mesa llena');
 }
 
 function removePlayerFromTable(tableId, playerId) {
@@ -68,7 +87,7 @@ function removePlayerFromTable(tableId, playerId) {
       table.players[playerIndex].isActive = false;
     }
   } else {
-    table.removePlayer(playerId);
+    table.players = table.players.filter(p => p.id !== playerId);
   }
   
   if (table.players.length === 0 || table.players.every(p => !p.isActive)) {
@@ -97,16 +116,16 @@ function placeBet(tableId, playerId, amount) {
   }
   
   const player = table.players[playerIndex];
-  if (amount > player.coins) {
+  if (amount > player.balance) {
     throw new Error('No tienes suficientes RPEREZCoins');
   }
   
   player.bet = amount;
-  player.coins -= amount;
+  player.balance -= amount;
   table.players[playerIndex] = player;
   
   tables.set(tableId, table);
-  return { table, playerCoins: player.coins };
+  return { table, playerBalance: player.balance };
 }
 
 function startBettingPhase(tableId, userId) {

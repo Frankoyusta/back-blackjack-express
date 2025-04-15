@@ -4,22 +4,34 @@ const tableService = require('./tableService');
 const userService = require('./userService');
 
 function startGame(table) {
+  // Check if deck exists and has enough cards (at least 10 cards to safely start a game)
+  if (!table.deck || !Array.isArray(table.deck) || table.deck.length < 10) {
+    // Re-initialize the deck if it doesn't exist or doesn't have enough cards
+    table.deck = deckService.createDeck();
+    table.deck = deckService.shuffleDeck(table.deck);
+    console.log('Deck was re-initialized due to insufficient cards');
+  }
+  
   table.status = 'playing';
   table.gamePhase = 'playing';
   
-  // Repartir 2 cartas a cada jugador activo
-  for (let i = 0; i < 2; i++) {
-    for (let j = 0; j < table.players.length; j++) {
-      if (table.players[j].isActive !== false) {
-        const card = table.deck.pop();
-        table.players[j].hand.push(card);
-      }
+  // Deal initial cards to players and dealer
+  table.players.forEach(player => {
+    if (player.bet > 0) {
+      player.hand = [
+        table.deck.pop(),
+        table.deck.pop()
+      ];
+      player.handValue = deckService.calculateHandValue(player.hand);
     }
-    
-    // Repartir al dealer
-    const dealerCard = table.deck.pop();
-    table.dealer.hand.push(dealerCard);
-  }
+  });
+  
+  // Deal to dealer
+  table.dealer.hand = [
+    table.deck.pop(),
+    table.deck.pop()
+  ];
+  table.dealer.handValue = deckService.calculateHandValue(table.dealer.hand);
   
   // Comprobar blackjack
   for (let i = 0; i < table.players.length; i++) {
