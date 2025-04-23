@@ -1,3 +1,4 @@
+const { getDocument, disconnectDB } = require('../config/db');
 const { UserModel } = require('../models/User');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
@@ -42,7 +43,11 @@ exports.register = async (req, res) => {
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({ message: 'Server error during registration' });
+  } finally {
+    console.log('Registration process completed');
+    disconnectDB();
   }
+
 };
 
 // Login user
@@ -52,13 +57,13 @@ exports.login = async (req, res) => {
     const { username, password } = req.body;
     
     // Find user
-    const user = await UserModel.findOne({ username });
+    const user = await getDocument('Users', { username });
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
     
     // Check password
-    const isMatch = await user.comparePassword(password);
+    const isMatch = await user.password === password; // Replace with bcrypt.compare if using hashed passwords
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
