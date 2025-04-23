@@ -1,35 +1,39 @@
 // src/models/Table.js
-const { v4: uuidv4 } = require('uuid');
-const { GAME_PHASES } = require('../config/constants');
 
-class Table {
-  constructor(name, createdBy) {
-    this.id = uuidv4();
-    this.name = name;
-    this.createdBy = createdBy;
-    this.players = [];
-    this.status = 'waiting';
-    this.deck = [];
-    this.dealer = {
-      hand: [],
-      status: ''
-    };
-    this.currentPlayerId = null;
-    this.gamePhase = GAME_PHASES.WAITING;
-    this.gameOver = false;
-  }
-  
-  addPlayer(player) {
-    this.players.push(player);
-    return this;
-  }
-  
-  removePlayer(playerId) {
-    this.players = this.players.filter(p => p.id !== playerId);
-    return this;
-  }
-  
-  // Other table methods
-}
+// Table structure for our ORM
+// Since we're not using Mongoose, this file will provide structure guidance
+// but not actual schema validation
 
-module.exports = Table;
+const COLLECTION_NAME = 'Tables';
+
+// Table structure for reference
+const tableStructure = {
+  id: String,            // Unique identifier for the table
+  name: String,          // Table name
+  status: String,        // waiting, betting, playing, finished
+  gamePhase: String,     // Current game phase
+  createdBy: String,     // User ID of table creator
+  players: [{
+    id: String,          // Player ID
+    name: String,        // Player name
+    balance: Number,     // Player's balance
+    bet: Number,         // Current bet
+    hand: Array,         // Cards in hand
+    handValue: Number,   // Value of the hand
+    status: String,      // waiting, betting, playing, stood, busted, blackjack
+    isActive: Boolean    // Whether player is active
+  }],
+  dealer: {
+    hand: Array,         // Dealer's cards
+    handValue: Number    // Value of dealer's hand
+  },
+  deck: Array,           // The deck of cards
+  maxPlayers: Number,    // Maximum number of players
+  createdAt: Date,       // Creation timestamp
+  updatedAt: Date        // Last update timestamp
+};
+
+module.exports = {
+  COLLECTION_NAME,
+  tableStructure
+};

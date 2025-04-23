@@ -5,51 +5,6 @@ require('dotenv').config();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-// Register a new user
-exports.register = async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    
-    // Check if username already exists
-    const existingUser = await UserModel.findOne({ username });
-    if (existingUser) {
-      return res.status(400).json({ message: 'Username already exists' });
-    }
-    
-    // Create new user
-    const newUser = new UserModel({
-      username,
-      password,
-    });
-    
-    await newUser.save();
-    
-    // Generate token
-    const token = jwt.sign(
-      { id: newUser.id, username: newUser.username },
-      JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-    
-    res.status(201).json({
-      message: 'User registered successfully',
-      token,
-      user: {
-        id: newUser.id,
-        username: newUser.username,
-        coins: newUser.coins
-      }
-    });
-  } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ message: 'Server error during registration' });
-  } finally {
-    console.log('Registration process completed');
-    disconnectDB();
-  }
-
-};
-
 // Login user
 exports.login = async (req, res) => {
   try {

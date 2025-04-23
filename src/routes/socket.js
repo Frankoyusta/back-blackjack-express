@@ -69,15 +69,16 @@ function setupSocketRoutes(io) {
     });
     
     // Unirse a una mesa
-    socket.on('joinTable', ({ userId, tableId }, callback) => {
+    socket.on('joinTable', async ({ userId, tableId }, callback) => {
       try {
-        const user = userService.getUser(userId);
+        console.log('Unirse a la mesa:', { userId, tableId });
+        const user = await userService.getUser(userId);
         if (!user) {
           return callback({ success: false, error: 'Usuario no encontrado' });
         }
         
         // Si el usuario ya está en una mesa, quitarlo primero
-        if (user.currentTableId) {
+        if (user.currentTableId !== "null") {
           try {
             const prevTable = tableService.removePlayerFromTable(user.currentTableId, userId);
             if (prevTable) {
@@ -95,10 +96,11 @@ function setupSocketRoutes(io) {
         }
         
         // Agregar usuario a la mesa
-        const updatedTable = tableService.addPlayerToTable(tableId, user);
+        const updatedTable = await tableService.addPlayerToTable(tableId, user);
         
+        console.log('Mesa actualizada:', updatedTable);
         // Actualizar usuario
-        user.joinTable(tableId);
+        user.currentTableId = tableId;
         userService.updateUser(user);
         
         // Notificar a todos los jugadores de la mesa

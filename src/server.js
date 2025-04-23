@@ -64,8 +64,6 @@ const startServer = async () => {
   try {
     await connectDB();
     console.log('Connected to MongoDB');
-    // Start the server
-    UserModel.init(); // Initialize the UserModel
     const server = app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
       console.log(`Swagger documentation available at http://localhost:${PORT}/api-docs`);

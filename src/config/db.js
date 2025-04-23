@@ -11,7 +11,6 @@ const dbName = process.env.DATABASE_NAME;
 const connectDB = async () => {
   try {
     await client.connect();
-    console.log('Connected to MongoDB');
   } catch (error) {
     console.error('Connection error:', error);
     process.exit(1);
