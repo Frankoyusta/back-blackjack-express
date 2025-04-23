@@ -2,6 +2,11 @@
 const userService = require('../services/userService');
 const tableService = require('../services/tableService');
 const gameService = require('../services/gameService');
+const { UserModel } = require('../models/User');
+const jwt = require('jsonwebtoken');
+const { updateSocketId } = require('../controllers/authController');
+const bcryptjs = require('bcryptjs');
+require('dotenv').config();
 
 function setupSocketRoutes(io) {
   io.on('connection', (socket) => {
@@ -15,6 +20,51 @@ function setupSocketRoutes(io) {
         callback({ success: true, userId: user.id, coins: user.coins });
       } catch (error) {
         callback({ success: false, error: error.message });
+      }
+    });
+    
+    // Login handler
+    socket.on('login', async (data, callback) => {
+      try {
+        const { username, password } = data;
+        console.log('Login request:', data);
+        // Find user in MongoDB
+        const user = await UserModel.where({ username: username });
+        console.log('User found:', user);
+        
+        if (!user) {
+          return callback({ success: false, message: 'User not found' });
+        }
+        
+        // Verify password
+        const isMatch = bcryptjs.compare(password, user.password);
+        if (!isMatch) {
+          return callback({ success: false, message: 'Invalid credentials' });
+        }
+        
+        // Update socket ID
+        await updateSocketId(user._id, socket.id);
+        
+        // Generate JWT token with _id
+        const token = jwt.sign(
+          { id: user._id, username: user.username },
+          process.env.JWT_SECRET,
+          { expiresIn: '1d' }
+        );
+        
+        callback({
+          success: true,
+          user: {
+            _id: user._id,
+            username: user.username,
+            coins: user.coins,
+            currentTableId: user.currentTableId
+          },
+          token
+        });
+      } catch (error) {
+        console.error('Login error:', error);
+        callback({ success: false, message: 'Server error during login' });
       }
     });
     

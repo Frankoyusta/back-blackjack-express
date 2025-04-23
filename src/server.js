@@ -5,6 +5,9 @@ const socketIo = require('socket.io');
 const cors = require('cors');
 const apiRoutes = require('./routes/api');
 const setupSocketRoutes = require('./routes/socket');
+const { connectDB } = require('./config/db');
+const { UserModel } = require('./models/User');
+require('dotenv').config();
 
 const app = express();
 app.use(cors());
@@ -13,19 +16,36 @@ app.use(express.json());
 // API Routes
 app.use('/api', apiRoutes);
 
-const server = http.createServer(app);
-const io = socketIo(server, {
+// Setup Socket Routes
+const io = socketIo(http.createServer(app), {
   cors: {
-    origin: "*",
+    origin: "http://localhost:5173",
     methods: ["GET", "POST"]
   }
 });
-
-// Setup Socket Routes
 setupSocketRoutes(io);
 
 // Iniciar el servidor
 const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
-  console.log(`Servidor iniciado en puerto ${PORT}`);
-});
+
+// Connect to MongoDB before starting server
+const startServer = async () => {
+  try {
+    await connectDB();
+    console.log('Connected to MongoDB');
+    // Start the server
+    UserModel.init(); // Initialize the UserModel
+    const server = app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+    
+    // Initialize Socket.io
+    io.attach(server);
+    
+  } catch (error) {
+    console.error(`Failed to start server: ${error.message}`);
+    process.exit(1);
+  }
+};
+
+startServer();
