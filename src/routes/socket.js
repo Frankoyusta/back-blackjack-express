@@ -212,14 +212,15 @@ function setupSocketRoutes(io) {
     });
     
     // Iniciar el juego (pasa de la fase de espera a la de apuestas)
-    socket.on('startGameBetting', ({ userId, tableId }, callback) => {
+    socket.on('startGameBetting', async ({ userId, tableId }, callback) => {
       try {
         const updatedTable = tableService.startBettingPhase(tableId, userId);
+        const tableToSend = await tableService.getTable(tableId);
         
         io.to(tableId).emit('tableUpdate', updatedTable);
         io.to(tableId).emit('gameStatusChange', { status: 'betting' });
-        
-        callback({ success: true });
+        console.log('Juego iniciado en la mesa:', tableToSend);
+        callback({ success: true, table: tableToSend });
       } catch (error) {
         callback({ success: false, error: error.message });
       }
@@ -233,9 +234,13 @@ function setupSocketRoutes(io) {
       const userInfo = userService.getUserBySocket(socket.id);
       if (userInfo) {
         const { userId, user } = userInfo;
+
+        if (!user) {
+          return;
+        }
         
         // Si el usuario estaba en una mesa, marcarlo como inactivo
-        if (user.currentTableId) {
+        if (user.currentTableId !== undefined) {
           try {
             const table = tableService.getTable(user.currentTableId);
             if (table) {
@@ -278,6 +283,10 @@ function setupSocketRoutes(io) {
           } catch (error) {
             console.error('Error al desconectar usuario de la mesa:', error);
           }
+        }
+        else {
+          // Si el usuario no estaba en una mesa, simplemente eliminarlo
+          userService.removeUser(userId);
         }
         
         userService.removeUser(userId);
